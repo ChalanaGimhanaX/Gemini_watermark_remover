@@ -1,5 +1,5 @@
 import * as esbuild from 'esbuild';
-import { cpSync, rmSync, existsSync, mkdirSync, watch, statSync, createReadStream, writeFileSync } from 'node:fs';
+import { cpSync, rmSync, existsSync, mkdirSync, watch, statSync, createReadStream } from 'node:fs';
 import { createRequire } from 'node:module';
 import { createServer } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
@@ -51,84 +51,6 @@ const userscriptBanner = `// ==UserScript==
 // @run-at       document-start
 // ==/UserScript==
 `;
-
-function writeExtensionManifest() {
-  const manifest = {
-    manifest_version: 3,
-    name: 'Gemini Watermark Remover',
-    version: pkg.version,
-    description: pkg.description,
-    author: pkg.author,
-    icons: {
-      16: 'assets/icon-16.png',
-      32: 'assets/icon-32.png',
-      48: 'assets/icon-48.png',
-      128: 'assets/icon-128.png'
-    },
-    permissions: [
-      'storage',
-      'activeTab'
-    ],
-    action: {
-      default_title: 'Gemini Watermark Remover',
-      default_icon: {
-        16: 'assets/icon-16.png',
-        32: 'assets/icon-32.png',
-        48: 'assets/icon-48.png',
-        128: 'assets/icon-128.png'
-      },
-      default_popup: 'popup.html'
-    },
-    host_permissions: [
-      'https://gemini.google.com/*',
-      'https://business.gemini.google/*',
-      'https://*.googleusercontent.com/*',
-      'https://googleusercontent.com/*',
-      'https://*.google.com/*'
-    ],
-    background: {
-      service_worker: 'service-worker.js'
-    },
-    content_scripts: [
-      {
-        matches: [
-          'https://gemini.google.com/app',
-          'https://gemini.google.com/app/*',
-          'https://gemini.google.com/*',
-          'https://business.gemini.google/app',
-          'https://business.gemini.google/app/*',
-          'https://business.gemini.google/*'
-        ],
-        js: ['content-main.js'],
-        run_at: 'document_start',
-        world: 'MAIN'
-      },
-      {
-        matches: [
-          'https://gemini.google.com/app',
-          'https://gemini.google.com/app/*',
-          'https://gemini.google.com/*',
-          'https://business.gemini.google/app',
-          'https://business.gemini.google/app/*',
-          'https://business.gemini.google/*'
-        ],
-        js: ['isolated-bridge.js'],
-        run_at: 'document_start'
-      }
-    ]
-  };
-
-  mkdirSync('dist/extension', { recursive: true });
-  writeFileSync('dist/extension/manifest.json', `${JSON.stringify(manifest, null, 2)}\n`);
-}
-
-function copyExtensionStaticAssets() {
-  mkdirSync('dist/extension/assets', { recursive: true });
-  cpSync('src/extension/assets', 'dist/extension/assets', { recursive: true });
-  cpSync('src/extension/popup.html', 'dist/extension/popup.html');
-  cpSync('src/extension/popup.css', 'dist/extension/popup.css');
-  cpSync('src/extension/popup.js', 'dist/extension/popup.js');
-}
 
 const copyAssetsPlugin = {
   name: 'copy-assets',
@@ -198,13 +120,9 @@ async function serveStaticDevDist(rootDir = 'dist', defaultPort = 4173) {
       res.end('Bad Request');
       return;
     }
-    // In dev mode, expose the internal single-image debug harness at `/`
-    // instead of the public landing entry. The landing page still ships to
-    // `dist/index.html` for prod deploys and can be reached at `/index.html`.
-    const devHarnessPath = '/dev-preview.html';
     const requestPath =
       urlPath === '/' || urlPath === ''
-        ? devHarnessPath
+        ? '/index.html'
         : urlPath;
     const fsPath = resolve(join(distRoot, normalize(requestPath)));
 
@@ -221,7 +139,7 @@ async function serveStaticDevDist(rootDir = 'dist', defaultPort = 4173) {
     const targetIsDir = targetExists && statSync(targetPath).isDirectory();
 
     if ((!targetExists || targetIsDir) && isSpaRoute) {
-      targetPath = resolve(join(distRoot, 'dev-preview.html'));
+      targetPath = resolve(join(distRoot, 'index.html'));
     }
 
     if (!existsSync(targetPath)) {
@@ -240,8 +158,7 @@ async function serveStaticDevDist(rootDir = 'dist', defaultPort = 4173) {
 
   server.listen(port, () => {
     console.log(`🌐 Dev server running at http://localhost:${port}`);
-    console.log(`   ↳ internal debug harness: http://localhost:${port}/ (dev-preview.html)`);
-    console.log(`   ↳ public landing entry:   http://localhost:${port}/index.html`);
+    console.log(`   ↳ default entry: http://localhost:${port}/index.html`);
   });
 
   const shutdown = () => {
@@ -313,72 +230,25 @@ const userscriptCtx = await esbuild.context({
   }
 });
 
-const extensionMainCtx = await esbuild.context({
-  ...commonConfig,
-  entryPoints: ['src/extension/contentMain.js'],
-  format: 'iife',
-  outfile: 'dist/extension/content-main.js',
-  platform: 'browser',
-  target: ['es2020'],
-  minify: isProd,
-  define: {
-    __US_WORKER_CODE__: JSON.stringify(userscriptWorkerCode),
-    __US_PAGE_PROCESSOR_CODE__: JSON.stringify(userscriptPageProcessorCode),
-    __US_INLINE_WORKER_ENABLED__: 'false',
-    __GWR_AUTO_INIT_USERSCRIPT__: 'false'
-  }
-});
-
-const extensionIsolatedCtx = await esbuild.context({
-  ...commonConfig,
-  entryPoints: ['src/extension/isolatedBridge.js'],
-  format: 'iife',
-  outfile: 'dist/extension/isolated-bridge.js',
-  platform: 'browser',
-  target: ['es2020'],
-  minify: isProd
-});
-
-const extensionServiceWorkerCtx = await esbuild.context({
-  ...commonConfig,
-  entryPoints: ['src/extension/serviceWorker.js'],
-  format: 'iife',
-  outfile: 'dist/extension/service-worker.js',
-  platform: 'browser',
-  target: ['es2020'],
-  minify: isProd
-});
-
 console.log(`🚀 Starting build process... [${isProd ? 'PRODUCTION' : 'DEVELOPMENT'}]`);
 
 if (existsSync('dist')) rmSync('dist', { recursive: true });
 mkdirSync('dist/userscript', { recursive: true });
 mkdirSync('dist/workers', { recursive: true });
-mkdirSync('dist/extension/assets', { recursive: true });
-writeExtensionManifest();
-copyExtensionStaticAssets();
 
 if (isProd) {
   await Promise.all([
     websiteCtx.rebuild(),
     workerCtx.rebuild(),
-    userscriptCtx.rebuild(),
-    extensionMainCtx.rebuild(),
-    extensionIsolatedCtx.rebuild(),
-    extensionServiceWorkerCtx.rebuild()
+    userscriptCtx.rebuild()
   ]);
-  writeExtensionManifest();
-  copyExtensionStaticAssets();
   console.log('✅ Build complete!');
   process.exit(0);
 } else {
   await Promise.all([
     websiteCtx.watch(),
     workerCtx.watch(),
-    userscriptCtx.watch(),
-    extensionMainCtx.watch(),
-    extensionIsolatedCtx.watch(),
-    extensionServiceWorkerCtx.watch()
+    userscriptCtx.watch()
   ]);
 
   const watchDir = (dir, dest) => {
@@ -399,17 +269,6 @@ if (isProd) {
     });
   };
   watchDir('public', 'dist');
-  watch('src/extension', (eventType, filename) => {
-    if (
-      filename === 'popup.html' ||
-      filename === 'popup.css' ||
-      filename === 'popup.js' ||
-      filename?.startsWith('assets')
-    ) {
-      copyExtensionStaticAssets();
-    }
-  });
-
   await serveStaticDevDist('dist');
 
   console.log('👀 Watching for changes...');

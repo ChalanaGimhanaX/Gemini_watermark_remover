@@ -4,166 +4,578 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gemini Watermark Remover</title>
-  <meta name="description" content="Official site entry for Gemini Watermark Remover. The public website lives on geminiwatermarkremover.io.">
-  <meta name="robots" content="noindex, nofollow">
-  <link rel="canonical" href="https://geminiwatermarkremover.io/">
+  <meta name="description" content="Upload an image and remove Gemini watermarks directly in your browser.">
+  <meta name="robots" content="index, follow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      color-scheme: light dark;
-      --bg: #f4f7f4;
+      color-scheme: light;
+      --bg: #f6efe7;
+      --ink: #1c1a18;
+      --muted: #5d5852;
       --panel: rgba(255, 255, 255, 0.9);
-      --text: #142118;
-      --muted: #4c6254;
-      --line: rgba(20, 33, 24, 0.12);
-      --accent: #11795a;
-      --accent-strong: #0b5f46;
+      --line: rgba(28, 26, 24, 0.12);
+      --accent: #f06f40;
+      --accent-strong: #d85d2f;
+      --accent-soft: rgba(240, 111, 64, 0.12);
+      --success: #0f8b6d;
+      --warn: #c84b31;
+      --shadow: 0 30px 80px rgba(43, 29, 18, 0.18);
     }
 
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #0f1712;
-        --panel: rgba(21, 31, 25, 0.88);
-        --text: #e7f1ea;
-        --muted: #9bb4a5;
-        --line: rgba(231, 241, 234, 0.12);
-        --accent: #54c293;
-        --accent-strong: #76d8aa;
-      }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
-
-    * { box-sizing: border-box; }
 
     body {
-      margin: 0;
       min-height: 100vh;
-      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: "IBM Plex Sans", "Space Grotesk", sans-serif;
+      color: var(--ink);
       background:
-        radial-gradient(circle at top, rgba(17, 121, 90, 0.16), transparent 40%),
-        linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0)),
-        var(--bg);
-      color: var(--text);
+        radial-gradient(circle at 20% 10%, rgba(240, 111, 64, 0.2), transparent 35%),
+        radial-gradient(circle at 85% 15%, rgba(15, 139, 109, 0.18), transparent 30%),
+        linear-gradient(160deg, #f6efe7 0%, #f2e4d7 45%, #f7f1ea 100%);
+    }
+
+    .page {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(14px);
+      background: rgba(246, 239, 231, 0.75);
+      border-bottom: 1px solid rgba(28, 26, 24, 0.06);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: linear-gradient(140deg, var(--accent), #f7a07f);
       display: grid;
       place-items: center;
-      padding: 24px;
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 12px 28px rgba(240, 111, 64, 0.35);
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 12px;
+      font-size: 14px;
+    }
+
+    .nav-actions a {
+      text-decoration: none;
+      color: var(--ink);
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(28, 26, 24, 0.08);
+      background: rgba(255, 255, 255, 0.6);
+      transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+    }
+
+    .nav-actions a:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(28, 26, 24, 0.2);
     }
 
     main {
-      width: min(760px, 100%);
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      padding: 32px;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.12);
-    }
-
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 12px;
-      border-radius: 999px;
-      background: rgba(17, 121, 90, 0.12);
-      color: var(--accent);
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-
-    h1 {
-      margin: 18px 0 12px;
-      font-size: clamp(32px, 5vw, 52px);
-      line-height: 1.04;
-    }
-
-    p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.7;
-      font-size: 16px;
-    }
-
-    .actions {
-      display: grid;
-      gap: 12px;
-      margin-top: 28px;
-    }
-
-    .primary-actions {
+      flex: 1;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
       display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
+      flex-direction: column;
+      gap: 40px;
     }
 
-    a.button {
-      display: inline-flex;
+    .hero {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 28px;
       align-items: center;
-      justify-content: center;
-      min-height: 48px;
-      padding: 0 18px;
-      border-radius: 14px;
-      text-decoration: none;
-      font-weight: 700;
-      transition: transform 120ms ease, background 120ms ease, color 120ms ease, border-color 120ms ease;
+      margin-top: 8px;
     }
 
-    a.button:hover {
-      transform: translateY(-1px);
+    .hero-copy h1 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(32px, 6vw, 54px);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin-bottom: 18px;
+      animation: fadeUp 600ms ease both;
     }
 
-    a.button.primary {
-      background: var(--accent);
-      color: #fff;
+    .hero-copy p {
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+      max-width: 52ch;
+      animation: fadeUp 600ms ease 100ms both;
     }
 
-    a.button.primary:hover {
-      background: var(--accent-strong);
-    }
-
-    a.button.secondary {
-      border: 1px solid var(--line);
-      color: var(--text);
-      background: transparent;
-    }
-
-    .notes {
-      margin-top: 28px;
-      padding-top: 20px;
-      border-top: 1px solid var(--line);
+    .hero-points {
+      margin-top: 18px;
       display: grid;
       gap: 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .hero-points span {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hero-points span::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+
+    .upload-card {
+      background: var(--panel);
+      border-radius: 24px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      animation: fadeUp 600ms ease 150ms both;
+    }
+
+    #uploadArea {
+      border: 2px dashed rgba(240, 111, 64, 0.35);
+      border-radius: 20px;
+      padding: 28px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.65);
+      cursor: pointer;
+      transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+    }
+
+    #uploadArea:hover {
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.92);
+      transform: translateY(-2px);
+    }
+
+    .upload-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 18px;
+      margin: 0 auto 14px;
+      background: var(--accent-soft);
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+    }
+
+    .upload-card h3 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .upload-card p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .info-card {
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 18px;
+      padding: 16px 18px;
+      border: 1px solid rgba(28, 26, 24, 0.08);
       font-size: 14px;
       color: var(--muted);
     }
 
-    code {
-      font-family: Consolas, "SFMono-Regular", monospace;
-      font-size: 0.95em;
+    #singlePreview {
+      display: none;
+      gap: 24px;
+      animation: fadeUp 600ms ease both;
+    }
+
+    .preview-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .preview-card {
+      background: var(--panel);
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .preview-header h2 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 20px;
+    }
+
+    .meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    #comparisonContainer {
+      position: relative;
+      margin: 0 auto;
+      max-width: 100%;
+      background: repeating-linear-gradient(
+        45deg,
+        rgba(0, 0, 0, 0.04),
+        rgba(0, 0, 0, 0.04) 12px,
+        rgba(255, 255, 255, 0.7) 12px,
+        rgba(255, 255, 255, 0.7) 24px
+      );
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(28, 26, 24, 0.08);
+      max-height: 60vh;
+    }
+
+    #comparisonContainer img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      max-height: 60vh;
+      object-fit: contain;
+      object-position: right bottom;
+    }
+
+    #processedOverlay {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 50%;
+      overflow: hidden;
+      border-right: 2px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.25);
+      display: none;
+    }
+
+    #sliderHandle {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 36px;
+      margin-left: -18px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: col-resize;
+    }
+
+    .slider-line {
+      width: 3px;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    .slider-knob {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #fff;
+      border: 1px solid rgba(28, 26, 24, 0.18);
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 14px;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+    }
+
+    .label-chip {
+      position: absolute;
+      top: 14px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(28, 26, 24, 0.6);
+      color: #fff;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+    }
+
+    .label-chip.after { left: 14px; }
+    .label-chip.before { right: 14px; }
+
+    .action-panel {
+      background: var(--panel);
+      border-radius: 20px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 12px;
+    }
+
+    .action-panel button {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .action-panel button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #1f1b18;
+      color: #fff;
+    }
+
+    .btn-outline {
+      background: #fff;
+      border: 1px solid rgba(28, 26, 24, 0.14);
+      color: var(--ink);
+    }
+
+    #statusMessage {
+      min-height: 1.2rem;
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .text-warn { color: var(--warn); }
+    .text-success { color: var(--success); }
+    .border-primary { border-color: var(--accent) !important; }
+    .bg-emerald-50 { background: var(--accent-soft) !important; }
+
+    footer {
+      margin-top: auto;
+      padding: 28px 24px 36px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    #loadingOverlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(247, 241, 234, 0.84);
+      backdrop-filter: blur(6px);
+      z-index: 60;
+    }
+
+    .spinner {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 3px solid rgba(240, 111, 64, 0.3);
+      border-top-color: var(--accent);
+      animation: spin 800ms linear infinite;
+      margin-bottom: 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 960px) {
+      .preview-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .nav {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .nav-actions {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
     }
   </style>
 </head>
 <body>
-  <main>
-    <div class="eyebrow">Public Entry</div>
-    <h1>Gemini Watermark Remover</h1>
-    <p>
-      项目官网已迁移到独立闭源站点。这个仓库保留 userscript 分发、本地调试资产，以及内部浏览器预览页，不再把根路径作为对外开发者预览站。
-    </p>
-
-    <div class="actions">
-      <div class="primary-actions">
-        <a class="button primary" href="https://geminiwatermarkremover.io/" target="_blank" rel="noopener noreferrer">前往官网</a>
-        <a class="button secondary" href="userscript/gemini-watermark-remover.user.js" target="_blank">安装 Userscript</a>
-        <a class="button secondary" href="./dev-preview.html">内部预览页</a>
+  <div class="page">
+    <header>
+      <div class="nav">
+        <div class="brand">
+          <div class="brand-badge">GWR</div>
+          Gemini Watermark Remover
+        </div>
+        <div class="nav-actions">
+          <a href="https://gemini.google.com/app" target="_blank" rel="noopener noreferrer">Open Gemini</a>
+          <a href="#singlePreview">Compare Results</a>
+        </div>
       </div>
-    </div>
+    </header>
 
-    <div class="notes">
-      <div>官网：<code>https://geminiwatermarkremover.io/</code></div>
-      <div>本地调试时，`pnpm dev` 仍会提供 userscript、probe 页面和内部预览页。</div>
-      <div>这个入口页保持 <code>noindex, nofollow</code>，避免与官网形成重复公开页面。</div>
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <h1>Remove Gemini watermarks in your browser.</h1>
+          <p>Upload an image, let the local engine rebuild the clean pixels, and compare the result side-by-side. Everything happens on your device.</p>
+          <div class="hero-points">
+            <span>Drag, paste, or click to upload one image.</span>
+            <span>Fast local processing with an optional worker path.</span>
+            <span>Copy or download the cleaned result immediately.</span>
+          </div>
+        </div>
+        <div class="upload-card">
+          <div id="uploadArea">
+            <div class="upload-icon">⬆</div>
+            <h3>Drop your image here</h3>
+            <p>Supports JPG, PNG, or WebP up to 20MB. You can also paste from clipboard.</p>
+            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" hidden />
+          </div>
+        </div>
+      </section>
+
+      <section class="info-grid">
+        <div class="info-card">Privacy-first: files never leave your browser.</div>
+        <div class="info-card">Quality-first: adaptive detection and multi-pass cleanup.</div>
+        <div class="info-card">Review everything: use the slider to compare before/after.</div>
+      </section>
+
+      <section id="singlePreview">
+        <div class="preview-layout">
+          <div class="preview-card">
+            <div class="preview-header">
+              <h2>Before / After Preview</h2>
+              <div class="meta">
+                <div id="originalInfo"></div>
+                <div id="processedInfo" style="display: none;"></div>
+              </div>
+            </div>
+            <div id="comparisonContainer">
+              <img id="originalImage" alt="Original image" />
+              <div id="processedOverlay">
+                <img id="processedImage" alt="Processed image" />
+              </div>
+              <div id="sliderHandle">
+                <div class="slider-line"></div>
+                <div class="slider-knob">drag</div>
+              </div>
+              <div class="label-chip after">After</div>
+              <div class="label-chip before">Before</div>
+            </div>
+          </div>
+
+          <div class="action-panel">
+            <button id="copyBtn" class="btn-primary" style="display: none;">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1" /><path d="M8 5a2 2 0 002 2h2a2 2 0 002-2" /><path d="M12 11h4" /><path d="M12 15h4" /></svg>
+              <span>Copy Result</span>
+            </button>
+            <button id="downloadBtn" class="btn-secondary" style="display: none;">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1" /><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /></svg>
+              <span>Download Result</span>
+            </button>
+            <button id="resetBtn" class="btn-outline">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9" /><path d="M3 3v6h6" /></svg>
+              <span>Reset / Try Another</span>
+            </button>
+            <div id="statusMessage"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Built for quick checks. For production workflows, integrate the SDK or userscript pipelines.
+    </footer>
+  </div>
+
+  <div id="loadingOverlay">
+    <div style="text-align: center;">
+      <div class="spinner"></div>
+      <p>Processing...</p>
     </div>
-  </main>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
